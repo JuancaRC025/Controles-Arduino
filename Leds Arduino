@@ -1,0 +1,107 @@
+//Enlace tinkercad: https://www.tinkercad.com/things/82J0IHYgdgb-lab1-final?sharecode=-Rg4yDV-BkQpS4rakSLfpHrkSToYKKuYGRzCt6Rjf4o
+
+// Definición de los pines de los leds
+int green = 11; 
+int red = 12;
+int yellow = 13;
+
+// Variables para almacenar el estado de los leds
+bool greenState = false;
+bool redState = false;
+bool yellowState = false;
+
+// Variables para manejar la intermitencia
+bool blinking = false;
+unsigned long previousMillis = 0;
+
+// Intervalo de parpadeo en milisegundos
+const long blinkInterval = 100; 
+
+// Tiempo total de parpadeo en milisegundos
+const long onTime = 1000; 
+
+// Tiempo de pausa en milisegundos
+const long pauseTime = 500; 
+unsigned long blinkStartMillis = 0;
+
+void setup() {
+  pinMode(green, OUTPUT);
+  pinMode(red, OUTPUT); 
+  pinMode(yellow, OUTPUT); 
+  
+  // Inicializa la comunicación serial
+  Serial.begin(9600);
+}
+
+void loop() {
+  // Verifica si hay datos disponibles en el monitor serial
+  if (Serial.available() > 0) {
+    int command = Serial.parseInt(); // Lee el comando enviado
+    
+    // Control del led verde
+    if (command == 1 || command == 2) {
+      greenState = !greenState;  // Cambia el estado del led verde
+      digitalWrite(green, greenState ? HIGH : LOW); // Aplica el nuevo estado
+    }
+    
+    // Control del led rojo
+    if (command == 3 || command == 4) {
+      redState = !redState;  // Cambia el estado del led rojo
+      digitalWrite(red, redState ? HIGH : LOW); // Aplica el nuevo estado
+    }
+    
+    // Control del led amarillo
+    if (command == 5 || command == 6) {
+      yellowState = !yellowState;  // Cambia el estado del led amarillo
+      digitalWrite(yellow, yellowState ? HIGH : LOW); // Aplica el nuevo estado
+    }
+    
+    // Control de todos los leds con el comando 7 o 8
+    if (command == 7 || command == 8) {
+      // Alterna el estado de todos los leds
+      bool newState = !(greenState && redState && yellowState);
+      greenState = redState = yellowState = newState;
+      digitalWrite(green, greenState ? HIGH : LOW);
+      digitalWrite(red, redState ? HIGH : LOW);
+      digitalWrite(yellow, yellowState ? HIGH : LOW);
+    }
+    
+    // Control de intermitencia con el comando 9
+    if (command == 9) {
+      blinking = !blinking;  // Cambia el estado de parpadeo
+      if (blinking) {
+        blinkStartMillis = millis(); // Guarda el tiempo de inicio del parpadeo
+      } else {
+        // Si se apaga el parpadeo, asegúrate de apagar todos los leds
+        digitalWrite(green, LOW);
+        digitalWrite(red, LOW);
+        digitalWrite(yellow, LOW);
+      }
+    }
+  }
+  
+  // Funcion para el manejo de la intermitencia en los leds
+  if (blinking) {
+    unsigned long currentMillis = millis();
+    
+    // Verifica si el tiempo de parpadeo ha pasado
+    if (currentMillis - blinkStartMillis < onTime) {
+      if (currentMillis - previousMillis >= blinkInterval) {
+        previousMillis = currentMillis;
+        // Alterna el estado de los leds
+        int ledState = (digitalRead(green) == HIGH) ? LOW : HIGH;
+        digitalWrite(green, ledState);
+        digitalWrite(red, ledState);
+        digitalWrite(yellow, ledState);
+      }
+    } else if (currentMillis - blinkStartMillis < (onTime + pauseTime)) {
+      // Mantiene los leds apagados durante el tiempo de pausa
+      digitalWrite(green, LOW);
+      digitalWrite(red, LOW);
+      digitalWrite(yellow, LOW);
+    } else {
+      // Reinicia el ciclo de parpadeo
+      blinkStartMillis = currentMillis;
+    }
+  }
+}
